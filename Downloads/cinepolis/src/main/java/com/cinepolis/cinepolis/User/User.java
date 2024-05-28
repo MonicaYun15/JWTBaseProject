@@ -53,7 +53,7 @@ public class User implements UserDetails{
     private String apellidos;
     
     @Column(name ="fechaNacimiento", nullable = false)
-    private LocalDate fechaNacimiento;
+    private Date fechaNacimiento;
     
     @Column(name ="codigoPostal", nullable = false)
     private String codigoPostal;

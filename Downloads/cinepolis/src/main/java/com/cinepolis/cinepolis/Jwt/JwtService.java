@@ -1,13 +1,13 @@
-/*
+ /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package com.cinepolis.cinepolis.Jwt;
 
+import com.cinepolis.cinepolis.User.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import java.security.Key;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import java.util.Date;
 import java.util.HashMap;
@@ -16,6 +16,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import io.jsonwebtoken.security.Keys;
 import java.util.function.Function;
+import javax.crypto.SecretKey;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  *
@@ -25,24 +27,34 @@ import java.util.function.Function;
 @Service
 public class JwtService {
     
-    private static final String SECRET_KEY="586E3272357538782F413F4428472B4B6250655368566B597033733676397924";
-    
-      public String getToken(UserDetails user) {
+    @Value("${jwt.secret}")
+    private String SECRET_KEY;
+      public String getToken(User user) {
         return getToken(new HashMap<>(), user);
     }
       
-    private String getToken(Map<String,Object> extraClaims, UserDetails user) {
+    private String getToken(Map<String,Object> extraClaims, User user) {
         return Jwts
             .builder()
-            .setClaims(extraClaims)
-            .setSubject(user.getUsername())
-            .setIssuedAt(new Date(System.currentTimeMillis()))
-            .setExpiration(new Date(System.currentTimeMillis()+1000*60*24))
-            .signWith(getKey(), SignatureAlgorithm.HS256)
+            .claims(extraClaims)
+            .claim("userId", user.getId())
+            .claim("nombre", user.getNombre())
+            .claim("apellidos", user.getApellidos())
+            .claim("fechaNacimiento", user.getFechaNacimiento())
+            .claim("codigoPostal", user.getCodigoPostal())
+            .claim("municipio", user.getMunicipio())
+            .claim("ciudad", user.getCiudad())
+            .claim("pais", user.getPais())
+            .claim("email", user.getEmail())
+            .claim("telefono", user.getTelefono())
+            .subject(user.getUsername())
+            .issuedAt(new Date(System.currentTimeMillis()))
+            .expiration(new Date(System.currentTimeMillis()+1000*60*24))
+            .signWith(getKey())
             .compact();
     }
     
-    private Key getKey() {
+    private SecretKey getKey() {
        byte[] keyBytes=Decoders.BASE64.decode(SECRET_KEY);
        return Keys.hmacShaKeyFor(keyBytes);
     }
@@ -59,11 +71,11 @@ public class JwtService {
     private Claims getAllClaims(String token)
     {
         return Jwts
-            .parserBuilder()
-            .setSigningKey(getKey())
+            .parser()
+            .verifyWith(getKey())
             .build()
-            .parseClaimsJws(token)
-            .getBody();
+            .parseSignedClaims(token)
+            .getPayload();
     }
 
     public <T> T getClaim(String token, Function<Claims,T> claimsResolver)
